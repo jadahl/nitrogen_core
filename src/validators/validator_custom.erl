@@ -12,4 +12,9 @@ render_action(Record) ->
     Validators = state_handler:get_state(validators, []),
     V = {TriggerPath, TargetPath, Record},
     state_handler:set_state(validators, lists:delete(V, Validators) ++ [V]),
-    [].
+    if
+        Record#custom.server_side_only ->
+            wf:f("obj('~s').hasServerOnlyValidator = true;", [TargetPath]);
+        true ->
+            []
+    end.

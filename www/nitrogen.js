@@ -78,21 +78,30 @@ NitrogenClass.prototype.$event_loop = function() {
 NitrogenClass.prototype.$validate_and_serialize = function(validationGroup) {
     // Check validatation, build object of params...
     var is_valid = true,
-        params= {},
+        params = {},
+        post_anyway = false,
         n = this;
 
     jQuery(":input").not(".no_postback").each(function(i) {
-        if (this.validator && this.validator.group == validationGroup && !this.validator.validate()) {
-            // Set a flag, but keep validating to show all messages.
-            is_valid = false;
-        } else {
-            // Skip any unchecked radio boxes.
-            if ((this.type == "radio" || this.type=="checkbox") && !this.checked) return;
-            params[n.$make_id(this)] = this.value;
+        if (this.validator && this.validator.group == validationGroup) {
+            if (!this.validator.validate()) {
+                // Set a flag, but keep validating to show all messages.
+                is_valid = false;
+            } else if (this.hasServerOnlyValidator) {
+                // In case the LiveValidation part validated but we still have a
+                // server side only validator, we still wan't to post anyway.
+                post_anyway = true;
+            }
         }
+
+        // Skip any unchecked radio boxes.
+        if ((this.type == "radio" || this.type=="checkbox") && !this.checked) return;
+        params[n.$make_id(this)] = this.value;
     });
-    // Return the params if valid. Otherwise, return null.
-    return is_valid && params || null;
+
+    // Return the params if valid or if a server only validator has yet to work
+    // it's part. Otherwise, return null.
+    return (is_valid || post_anyway) && params || null;
 }
 
 NitrogenClass.prototype.$make_id = function(element) {
@@ -125,7 +134,7 @@ NitrogenClass.prototype.$do_event = function(validationGroup, onInvalid, eventCo
     this.$event_is_running = true;
 
     // Run validation...
-    var validationParams = this.$validate_and_serialize(validationGroup);	
+    var validationParams = this.$validate_and_serialize(validationGroup);
     if (validationParams == null) {
         this.$event_is_running = false;
 
