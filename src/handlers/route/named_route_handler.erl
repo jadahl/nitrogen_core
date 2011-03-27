@@ -62,9 +62,16 @@ finish(_Config, State) ->
 route(Path, Routes) ->
     % Returns {SizeOfMatch, Prefix, Module}
     F = fun(Prefix, Module) ->
-        case string:str(Path, Prefix) of
-            1 -> {length(Prefix), Prefix, Module};
-            _ -> not_found
+        if
+            Prefix == "/", Path == "/" ->
+                {1, Prefix, Module};
+            Prefix == "/" ->
+                not_found;
+            true ->
+                case string:str(Path, Prefix) of
+                    1 -> {length(Prefix), Prefix, Module};
+                    _ -> not_found
+                end
         end
     end,
     Matches = [F(Prefix, Module) || {Prefix, Module} <- Routes],
